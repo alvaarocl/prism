@@ -69,3 +69,24 @@ private func fixture() -> [UInt8] {
         #expect(bytes.count == 520)
     }
 }
+
+@Test func acceptsReal131ByteMouseReplyAndRejectsAmbiguousLengths() throws {
+    var bytes=fixture();bytes[1]=0x21
+    let profile=try GloriousProtocol.normalize(bytes,transferred:131,command:0x21)
+    #expect(profile[1]==0x21)
+    #expect(profile[131...].allSatisfy{$0==0})
+    let changed=try GloriousProtocol.updating(profile,lighting:Lighting(),configSize:131)
+    #expect(changed[3]==123)
+    #expect(throws:ProtocolError.self){try GloriousProtocol.normalize(bytes,transferred:130,command:0x21)}
+    #expect(throws:ProtocolError.self){try GloriousProtocol.normalize(bytes,transferred:520,command:0x21)}
+    #expect(throws:ProtocolError.self){try GloriousProtocol.normalize(bytes,transferred:131,command:0x11)}
+    #expect(throws:ProtocolError.self){try GloriousProtocol.updating(profile,lighting:Lighting(),configSize:520)}
+}
+@Test func checksMouseReadbackAndLongConfigWriteMarker() throws {
+    let original=fixture()
+    let light=Lighting(color:RGB(10,20,30))
+    let expected=try GloriousProtocol.updating(original,lighting:light,configSize:167)
+    #expect(expected[3]==159)
+    try GloriousProtocol.verify(expected,expected:expected,lighting:light,polling:nil)
+    #expect(throws:ProtocolError.self){try GloriousProtocol.verify(original,expected:expected,lighting:light,polling:nil)}
+}

@@ -37,3 +37,48 @@ Visible lighting and polling-rate confirmation; mouse readback after permission;
 short report handling on real firmware; disconnect/reconnect during writes;
 sleep/wake and original-effect restoration behaviour; macOS 14/15 and Intel;
 accessibility and translated error messages; notarisation before binary releases.
+
+## Native workspace update, 2026-11-14
+
+Nine tests pass after adding macro sequence bounds, persistence, modifier labels
+and unique key codes. Release build and installed signature pass. Native UI checked
+for mouse and keyboard sections, ACL image loading, model artwork, macro creation,
+adding/removing steps and persistence across relaunch. The temporary test macro was
+removed. No macro was executed into a user's application; Accessibility authorisation,
+actual event delivery and live cancellation/focus-loss checks remain manual validation.
+The earlier footprint observations above are for the original interface, not a
+benchmark of the redesign.
+
+## Photo and glass correction, 2026-11-14
+
+Procedural silhouettes removed. Real manufacturer reference images were inspected
+for model identity, then background-extracted with the integrated image editor.
+All three selected PNGs have alpha channels and fully transparent corner pixels.
+HyperX, Glorious and Razer views were visually checked over the installed dark
+window, without the previous white card. Known model variants remain catalogue
+references; the Model O identity does not reuse the Model D photo.
+
+The full-window surface, edge highlight, selection motion and transitions were
+reworked after reviewing Claude Launcher. Release build/signature and native
+controls verified; the existing nine tests passed. No peripheral protocol or macro
+execution behaviour was expanded.
+
+## Background controller and mouse correction, 2026-11-14
+
+- Eleven tests pass, including the real 131-byte reply regression, profile command
+  echo checks, ambiguous-length rejection, long-profile marker and readback mismatch.
+- Connected Model D returned report 4, command 0x11, sensor 6, active profile 1 and
+  **131 bytes**. A one-level RGB change was written, read back and verified. The
+  original RGB/brightness was then restored and verified. Other settings preserved.
+- Bundled PrismAgent registered/running under SMAppService as a user LaunchAgent.
+  `otool -L` confirms no AppKit/SwiftUI dependency.
+- Closing the real configuration window terminated Prism; the same agent PID
+  remained active. A 10.01-second idle sample measured **8.78 MiB RSS, 0.0% of one
+  core** with the GUI absent. This sample had no keyboard keepalive active; do not
+  present it as an active-keyboard energy benchmark.
+- Applied mouse lighting persisted across a controller restart. Keyboard restoration
+  on login/wake/reconnect is implemented; physical sleep/reconnect and visible
+  restoration still need the owner's confirmation after applying a keyboard colour.
+- No saved keyboard preset was present from the older UI. Its former Apply action
+  did not automatically persist colour; the old unsaved choice cannot be recovered.
+  This version saves every successful Apply.

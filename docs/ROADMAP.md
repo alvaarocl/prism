@@ -2,16 +2,18 @@
 
 ## 0.1 alpha: current
 
-Native SwiftUI shell, local presets, real HID discovery, allowlisted HyperX and
+Compact translucent workspace, ACL branding, manufacturer-photo cutouts, local macro
+composition and guarded playback, local presets, real HID discovery, allowlisted HyperX and
 Glorious encoders, explicit writes, protocol guard tests. HyperX USB writes
-accepted locally; mouse access awaits Input Monitoring and hardware confirmation.
+accepted locally; Model D RGB mutation/readback/restore verified. A minimal native
+LaunchAgent maintains applied keyboard settings independently of the window.
 
 ## Next: hardware verification
 
 - Verify visible colour, brightness/off, disconnect during updates and sleep/wake
   on the Alloy Origins Core, including ISO layouts.
-- Grant native HID permission and verify Glorious profile readback; confirm the
-  exact profile size and colour response before expanding settings.
+- Validate additional Glorious effects and polling rates on hardware beyond the
+  verified solid-colour mutation/readback/restore path.
 - Test HP keyboard and original Model O units separately.
 - Read current mouse settings and active profile; add explicit backup/restore of
   validated configuration, then DPI stages and debounce.
