@@ -1,6 +1,7 @@
 import AppKit
 import IOKit.hid
 import PrismCore
+import ServiceManagement
 // SPDX-License-Identifier: GPL-2.0-or-later
 import SwiftUI
 
@@ -22,7 +23,6 @@ enum WorkspaceSection: String, CaseIterable, Identifiable {
 struct PrismView: View {
   @Bindable var store: DeviceStore
   @State private var section: WorkspaceSection = .lighting
-  @State private var polling = 1000
   @State private var showAccess = false
   @State private var hoveredDevice: String?
   @State private var showModes = false
@@ -111,11 +111,12 @@ struct PrismView: View {
     .ignoresSafeArea(.container, edges: .top)
     .background(WindowAppearance())
     .sheet(isPresented: $showAccess) { accessSheet }
-    .onChange(of: store.selected) {
+    .onChange(of: store.selected, initial: true) {
       store.message = ""
       store.isError = false
       if let device = store.current {
         store.light = store.saved[device.identifier] ?? Lighting()
+        store.polling = store.service.polling[device.identifier] ?? 1000
         if !device.driver.modes.contains(store.light.mode) { store.light.mode = .solid }
       }
     }
@@ -328,7 +329,6 @@ struct PrismView: View {
         }
         Divider()
         HStack {
-          Button("Guardar preset") { store.save() }.buttonStyle(GhostButtonStyle())
           Spacer()
           if store.busy { ProgressView().controlSize(.small) }
           Button("Aplicar") { store.apply() }.buttonStyle(PrimaryButtonStyle()).disabled(store.busy)
@@ -339,7 +339,7 @@ struct PrismView: View {
   @ViewBuilder private func performance(_ device: Peripheral) -> some View {
     if device.driver == .glorious {
       group("Respuesta USB", subtitle: "Configura la tasa de sondeo del perfil 1.") {
-        Picker("Tasa solicitada", selection: $polling) {
+        Picker("Tasa solicitada", selection: $store.polling) {
           ForEach([125, 250, 500, 1000], id: \.self) { Text("\($0) Hz").tag($0) }
         }
         Text(
@@ -347,8 +347,10 @@ struct PrismView: View {
         ).font(.caption).foregroundStyle(.secondary)
         HStack {
           Spacer()
-          Button("Aplicar tasa") { store.apply(polling: polling) }.buttonStyle(PrimaryButtonStyle())
-            .disabled(store.busy)
+          Button("Aplicar tasa") { store.apply(polling: store.polling) }.buttonStyle(
+            PrimaryButtonStyle()
+          )
+          .disabled(store.busy)
         }
       }
     } else {
@@ -388,7 +390,7 @@ struct PrismView: View {
         value: device.driver == .unsupported ? "No disponible" : "Experimental")
       if device.driver == .hyperX {
         Text(
-          "El teclado requiere que Prism esté abierto para mantener el color. Tras suspender el Mac, vuelve a pulsar Aplicar."
+          "El controlador mantiene el color aunque cierres esta ventana y lo recupera al despertar. Para detenerlo, usa Prism → Detener Prism por completo."
         ).font(.caption).foregroundStyle(.secondary)
       }
       if device.driver == .glorious {
@@ -403,6 +405,14 @@ struct PrismView: View {
       Text("Permisos de Prism").font(.title2.bold())
       Text("Concede solo los permisos de las funciones que quieras usar.").foregroundStyle(
         .secondary)
+      Divider()
+      Text("Controlador de segundo plano").font(.headline)
+      Text(store.service.running ? "Controlador activo" : "Controlador pendiente de autorización")
+        .font(.caption).foregroundStyle(.secondary)
+      Text(
+        "Mantiene los ajustes con la ventana cerrada. Se inicia al entrar en macOS y recupera el color al despertar."
+      ).font(.subheadline)
+      Button("Abrir ítems de inicio…") { SMAppService.openSystemSettingsLoginItems() }
       Divider()
       Text("Acceso USB").font(.headline)
       Text(

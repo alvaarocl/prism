@@ -62,3 +62,23 @@ The full-window surface, edge highlight, selection motion and transitions were
 reworked after reviewing Claude Launcher. Release build/signature and native
 controls verified; the existing nine tests passed. No peripheral protocol or macro
 execution behaviour was expanded.
+
+## Background controller and mouse correction, 2026-11-14
+
+- Eleven tests pass, including the real 131-byte reply regression, profile command
+  echo checks, ambiguous-length rejection, long-profile marker and readback mismatch.
+- Connected Model D returned report 4, command 0x11, sensor 6, active profile 1 and
+  **131 bytes**. A one-level RGB change was written, read back and verified. The
+  original RGB/brightness was then restored and verified. Other settings preserved.
+- Bundled PrismAgent registered/running under SMAppService as a user LaunchAgent.
+  `otool -L` confirms no AppKit/SwiftUI dependency.
+- Closing the real configuration window terminated Prism; the same agent PID
+  remained active. A 10.01-second idle sample measured **8.78 MiB RSS, 0.0% of one
+  core** with the GUI absent. This sample had no keyboard keepalive active; do not
+  present it as an active-keyboard energy benchmark.
+- Applied mouse lighting persisted across a controller restart. Keyboard restoration
+  on login/wake/reconnect is implemented; physical sleep/reconnect and visible
+  restoration still need the owner's confirmation after applying a keyboard colour.
+- No saved keyboard preset was present from the older UI. Its former Apply action
+  did not automatically persist colour; the old unsaved choice cannot be recovered.
+  This version saves every successful Apply.

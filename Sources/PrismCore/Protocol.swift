@@ -60,17 +60,40 @@ public enum HyperXProtocol {
     }
 }
 public enum GloriousProtocol {
+    public static func normalize(_ bytes: [UInt8], transferred: Int, command: UInt8) throws -> [UInt8] {
+        guard [131, 167].contains(transferred), bytes.count >= transferred,
+              [0x11, 0x21, 0x31].contains(command), bytes[0] == 4, bytes[1] == command else { throw ProtocolError.invalidProfile }
+        var result = [UInt8](repeating: 0, count: 520)
+        result.replaceSubrange(0..<transferred, with: bytes.prefix(transferred))
+        try validate(result)
+        return result
+    }
+    public static func verify(_ actual: [UInt8], expected: [UInt8], lighting: Lighting?, polling: Int?) throws {
+        try validate(actual)
+        var fields: [Int] = []
+        if polling != nil { fields.append(0x0a) }
+        if let lighting {
+            fields.append(0x35)
+            switch lighting.mode {
+            case .solid, .off: fields += [0x38,0x39,0x3a,0x3b]
+            case .rainbow: fields += [0x36]
+            case .breathing: fields += [0x7d,0x7e,0x7f,0x80]
+            }
+        }
+        guard fields.allSatisfy({ actual[$0] == expected[$0] }) else { throw ProtocolError.invalidProfile }
+    }
     public static func validate(_ report: [UInt8]) throws {
-        guard report.count == 520, report[0] == 4, report[1] == 0x11,
+        guard report.count == 520, report[0] == 4, [0x11, 0x21, 0x31].contains(report[1]),
               [0x06, 0x08, 0x0e, 0x0f].contains(report[9]),
               (1...4).contains(report[0x0a] & 0x0f),
               report[0x35] <= 0x0a else { throw ProtocolError.invalidProfile }
     }
     // Preserve the entire original profile, including DPI stages, button settings and padding.
-    public static func updating(_ original: [UInt8], lighting: Lighting? = nil, polling: Int? = nil) throws -> [UInt8] {
+    public static func updating(_ original: [UInt8], lighting: Lighting? = nil, polling: Int? = nil, configSize: Int = 131) throws -> [UInt8] {
         try validate(original)
         var result = original
-        result[3] = 0x7b
+        guard [131, 167].contains(configSize) else { throw ProtocolError.invalidProfile }
+        result[3] = UInt8(configSize - 8)
         if let polling {
             guard let index = [125, 250, 500, 1000].firstIndex(of: polling) else { throw ProtocolError.invalidRate }
             result[0x0a] = (result[0x0a] & 0xf0) | UInt8(index + 1)

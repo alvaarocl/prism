@@ -21,18 +21,40 @@ Input Monitoring even without recording keystrokes.
 Mouse updates read a complete snapshot and mutate only selected fields plus the
 protocol's write marker. Unknown bytes and the trailing buffer remain unchanged.
 Requests never contain bootloader commands. Configuration writes are serialized;
-the 50 ms firmware settling interval runs on the utility queue, not the UI thread.
+the firmware settling interval is scheduled asynchronously so it does not block keyboard maintenance or the UI thread.
 A success message means macOS accepted the report, not visual verification or
 readback of persistent state.
 
 ## Lifetime and performance
 
-Discovery is event driven. No network stack, telemetry, login service or daemon.
-The HyperX firmware requires periodic frames: a 60 ms DispatchSource timer starts
-only after Apply. It is stopped on removal, sleep and USB failure. No automatic
-reapplication on launch or wake; a local preset is just a saved requested value.
-Mouse writes are discrete and do not create a timer. Current code does not recover
-the keyboard's original effect on quit or restore its previous hardware profile.
+The user requested persistent settings with the configuration window closed. A
+bundled SMAppService LaunchAgent now owns PrismHardware and the HID queue. It
+links Foundation/IOKit only; no AppKit, SwiftUI, photos, macro engine or window.
+The configuration app terminates after its last window closes.
+
+A private mode-0700 Application Support directory contains bounded JSON commands,
+status and applied settings; individual files are mode 0600. File event sources
+react to atomic writes. Requests have UUIDs, are processed once and time out in
+the UI. The agent validates the selected connected device and protocol before
+writing. There is no network listener, idle polling loop or per-frame disk write.
+Only successfully applied settings are persisted. Never restore a draft.
+
+Discovery matches external transports and suppresses unchanged snapshots. The
+HyperX timer stays at the known-working 60 ms interval; encoded packets are
+prepared once when applying, then reused without rebuilding colour arrays every
+tick. IOKit power notifications stop it for sleep and reapply saved settings on
+wake. Disconnect/reconnect is event driven. The agent starts at login and can be
+disabled via SMAppService/System Settings or the explicit stop command in Prism.
+
+The mouse's actual transfer length determines its meaningful profile size. The
+active profile is queried, then read/modify/write preserves that profile. A small
+local binary backup precedes a write. A delayed readback must match requested
+lighting/polling fields before success is reported. Mouse settings stay onboard
+and do not need periodic rewrites.
+
+The UI's normal quit command closes configuration only. Fully stopping Prism
+unregisters the agent. No original-effect/brightness restoration is claimed when
+the keyboard controller is completely stopped.
 
 ## Extending
 

@@ -9,12 +9,11 @@ import SwiftUI
   var selected: String?
   var light = Lighting()
   var busy = false
+  var polling = 1000
   var message = ""
   var isError = false
   var saved: [String: Lighting] = [:]
-  let service = HIDService()
-  private var sleepObserver: NSObjectProtocol?
-  private var terminationObserver: NSObjectProtocol?
+  let service = AgentClient()
   var current: Peripheral? { devices.first { $0.id == selected } }
   init() {
     if let data = UserDefaults.standard.data(forKey: "lightingPresets"),
@@ -26,6 +25,7 @@ import SwiftUI
       Task { @MainActor in
         guard let self else { return }
         self.devices = devices
+        for (key, value) in self.service.applied { self.saved[key] = value }
         if !devices.contains(where: { $0.id == self.selected }) {
           self.selected = devices.first?.id
         }
@@ -37,12 +37,6 @@ import SwiftUI
         self?.isError = true
       }
     }
-    sleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
-      forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
-    ) { [weak service] _ in service?.suspend() }
-    terminationObserver = NotificationCenter.default.addObserver(
-      forName: NSApplication.willTerminateNotification, object: nil, queue: .main
-    ) { [weak service] _ in service?.suspend() }
     service.start()
   }
   func apply(polling: Int? = nil) {
@@ -56,17 +50,18 @@ import SwiftUI
         guard let self else { return }
         self.busy = false
         self.isError = error != nil
-        self.message = error ?? "Configuración enviada. Comprueba el resultado en tu periférico."
+        if error == nil, let rate = self.service.polling[device.identifier] { self.polling = rate }
+        self.message =
+          error
+          ?? (device.driver == .glorious
+            ? "Cambio confirmado por el ratón."
+            : "Ajuste aplicado. Puedes cerrar esta ventana: el controlador lo mantendrá en segundo plano.")
+        if error == nil, polling == nil {
+          if let applied = self.service.applied[device.identifier] {
+            self.saved[device.identifier] = applied
+          }
+        }
       }
     }
-  }
-  func save() {
-    guard let device = current else { return }
-    saved[device.identifier] = light
-    if let data = try? JSONEncoder().encode(saved) {
-      UserDefaults.standard.set(data, forKey: "lightingPresets")
-    }
-    message = "Preset guardado en este Mac. No se aplica automáticamente."
-    isError = false
   }
 }

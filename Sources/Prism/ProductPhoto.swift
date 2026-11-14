@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import AppKit
 import SwiftUI
+import PrismCore
 
 @MainActor enum ProductPhotos {
   private static var loaded: [String: NSImage] = [:]

@@ -4,7 +4,7 @@ Your desk, your settings. Native peripheral control for macOS, by
 [Álvaro Carpintero](https://github.com/alvaarocl).
 
 **Early alpha.** A SwiftUI interface over small, allowlisted USB drivers. No
-Electron, web view, accounts, telemetry, background server or package dependencies.
+Electron, web view, accounts, telemetry, web server or package dependencies.
 Built for macOS 14 and later. Currently built and checked on Apple Silicon;
 Intel has not been validated.
 
@@ -23,8 +23,12 @@ Intel has not been validated.
   They are not recorded from input or assigned to hardware buttons.
 - HyperX Alloy Origins Core: solid colour, brightness and lights off.
 - Glorious Model O / O− and Model D / D− wired protocols: solid colour,
-  breathing, rainbow, off and USB polling-rate configuration for profile 1.
-- Local lighting presets, applied explicitly. No automatic writes on launch.
+  breathing, rainbow, off and USB polling-rate configuration for the active onboard profile.
+  Writes are read back and checked.
+- Apply saves successful lighting and polling settings automatically. The small
+  native agent restores applied keyboard lighting at login, wake and reconnect.
+- Close the configuration window to release the entire SwiftUI process. PrismAgent
+  keeps hardware state without loading AppKit, photos or the macro editor.
 - Unsupported devices are visible as information only, with no configuration
   commands sent to them.
 
@@ -64,32 +68,44 @@ not write lighting or configuration. The sidebar gear opens the permission sheet
 1. Connect a peripheral and select it in the sidebar.
 2. If macOS refuses access, use the sidebar gear and **Abrir Monitorización de entrada…** to open Input Monitoring,
    allow Prism, then quit and reopen it. Close other RGB controllers.
-3. Select a colour, effect and brightness, then press **Aplicar al dispositivo**.
-4. **Guardar preset** stores the selection on this Mac; it does not write hardware.
-5. The **Ajustes** tab exposes polling-rate configuration on supported mice and
-   links to relevant macOS settings for other devices. The displayed rate is a
-   requested value, not a readback of its current rate.
-6. In **Macros**, create a sequence, select a running destination and press
-   **Ejecutar**. Playback starts after three seconds and stops when the target
-   loses focus, when you cancel, change the device/tab, or the Mac sleeps.
-   Accessibility authorisation is needed; Prism does not grant it automatically.
+3. Select a colour, effect and brightness, then press **Aplicar**. A successful
+   change is saved automatically; an un-applied draft is never restored.
+4. Close the window. Only the small controller stays running. Reopen Prism from
+   Applications when you want to edit settings. The mouse keeps its own settings.
+5. The **Ajustes** tab changes polling rate on the active supported mouse profile;
+   its last successful selection is saved too. Other devices link to macOS settings.
+6. In **Macros**, create a sequence, select a destination and press **Ejecutar**.
+   Playback requires Accessibility. Macros execute only while the configuration
+   interface is open; the agent never records or generates keyboard input.
 
-The HyperX protocol needs a keepalive to hold a static colour. Prism starts it
-only after Apply, at roughly 17 frames/second, and stops on disconnect, sleep,
-USB errors or process exit. After sleep, reapply manually. The mouse stores
-changes internally and needs no keepalive. Profile restoration for the keyboard
-is not implemented; quitting may leave the last colour or restore its own effect,
-depending on firmware.
+Prism registers a bundled user LaunchAgent with Apple's SMAppService. If macOS
+requires approval, allow Prism in **System Settings → General → Login Items →
+Allow in Background**. The sidebar gear shows this setting. No administrator
+password or privileged daemon is needed.
+
+The HyperX firmware needs a keepalive for direct colour. Its 60 ms timer lives in
+PrismAgent, uses cached packets and stops during sleep/disconnection. The latest
+successfully applied colour and brightness are restored on wake/reconnect/login.
+Closing the window or choosing **Cerrar configuración** stops only the UI.
+**Prism → Detener Prism por completo** unregisters the agent; the keyboard can
+then return to its onboard effect while keeping the last hardware brightness.
+Prism does not claim to store a direct RGB frame in the keyboard's flash.
+
+The earlier version did not save values just by pressing Apply. If no prior preset
+exists, choose the desired keyboard colour and apply it once in this version;
+Prism cannot recover an unsaved colour from a terminated older process.
 
 ## Scope
 
 This is a foundation for broader peripheral configuration, not universal hardware
 support. DPI editing, onboard macros, physical button mapping, keyboard layouts/per-key
-painting, wireless vendor configuration, firmware updates, automatic startup and profile migration
+painting, wireless vendor configuration, firmware updates and general profile migration
 are not implemented. Detection of a Bluetooth device does not imply RGB support.
 No firmware or bootloader commands are exposed.
 
-The full-buffer mouse guard deliberately rejects unexpected firmware responses
+The mouse guard accepts validated 131/167-byte configuration replies, preserving
+the complete meaningful profile and zeroing transport padding. It rejects unknown
+lengths, ambiguous 520-byte transfers and unexpected firmware responses
 instead of guessing. If your device is visible but configuration is refused,
 report its VID:PID, model and error text, without uploading serial numbers or raw
 USB captures containing personal input.
@@ -97,7 +113,11 @@ USB captures containing personal input.
 ## Architecture and footprint
 
 - `PrismCore`: pure Swift packet encoders, capability table and protocol guards.
-- `Prism`: SwiftUI, AppKit and IOHIDManager; HID objects stay on a serial utility queue.
+- `Prism`: the temporary SwiftUI/AppKit configuration interface and agent client.
+- `PrismAgent`: Foundation/IOKit user service, managed by SMAppService. No UI frameworks.
+- `PrismHardware`: HID objects and precomputed keyboard frames on a serial utility queue.
+- `AgentMessages`: bounded local JSON requests/status with private directory/file permissions.
+  Filesystem notifications replace polling; no TCP server or disk writes per keepalive.
 - `Tests`: golden packet checks, bounds and malformed reads, settings preservation,
   macro bounds, key-code uniqueness and persistence.
 - `MacroPlayer`: explicit, cancellable keyboard-event delivery to one selected process.
