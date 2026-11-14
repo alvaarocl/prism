@@ -2,7 +2,8 @@
 
 ## 0.1 alpha: current
 
-Native SwiftUI shell, local presets, real HID discovery, allowlisted HyperX and
+Native split-view workspace, ACL branding, original model silhouettes, local macro
+composition and guarded playback, local presets, real HID discovery, allowlisted HyperX and
 Glorious encoders, explicit writes, protocol guard tests. HyperX USB writes
 accepted locally; mouse access awaits Input Monitoring and hardware confirmation.
 

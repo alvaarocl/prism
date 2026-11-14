@@ -45,3 +45,25 @@ separate, reviewed recovery design.
 
 An optional OpenRGB SDK adapter could expand coverage later. It would require a
 separate running backend and its own compatibility tests; it is not present today.
+
+## Native workspace and macros
+
+The window uses NavigationSplitView, native sidebar materials and system appearance.
+Liquid Glass is limited to the section control on macOS 26+, with a material
+fallback and respect for Reduce Transparency. DeviceArtwork draws original static
+vector silhouettes; these are illustrations, not exact photos, 3D assets or verified
+keyboard-layout maps. The existing personal ACL image is a bundled local resource.
+
+Macros are composed manually and stored in UserDefaults by VID:PID. No HID input
+listeners, key loggers, recording taps or hardware remaps are installed. MacroPlayer
+requires Accessibility, a selected running regular application and explicit Run.
+It counts down for three seconds, activates that destination, verifies focus before
+every step and posts a paired key-down/up directly to its PID. If the target loses
+focus or terminates, playback stops. Cancellation is also requested on tab/device
+changes, disappearance and sleep. Limits: 64 steps, each delay 50–5000 ms, total
+delays at most one minute; no shell commands or unbounded loops. The editor shows
+requested steps, not a guarantee the target app will accept every shortcut.
+
+Macros here are a macOS facility organised alongside device controls. They do not
+write the peripheral's onboard macro memory or bind a physical button. Those need
+a separate validated vendor protocol, and are intentionally absent.

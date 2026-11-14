@@ -41,7 +41,9 @@ is experimental and additionally follows OpenRGB's Model D detector.
 
 ## Identity and system frameworks
 
-The Prism icon and UI are original to this project, using Álvaro Carpintero's
+The Prism icon, UI and device silhouettes are original to this project, using Álvaro Carpintero's
 personal palette (ink, bone, cobalt). Typography and symbols use macOS system
-resources. Vendor names identify compatible hardware; no vendor logos or fonts
-are bundled. No third-party Swift packages are required.
+resources. The ACL monogram comes from the owner's existing personal brand assets. Device
+illustrations are original, approximate silhouettes rather than vendor photos or
+exact product/layout reproductions. Vendor names identify hardware; no vendor
+logos or fonts are bundled. No third-party Swift packages are required.

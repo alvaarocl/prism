@@ -21,3 +21,11 @@ remove it to "make the button work" without understanding the returned format.
 Only mouse profile 1 is accessed. The active profile is not automatically switched;
 if a different onboard profile is active, a change may not be immediately visible.
 No macros, DPI stages, lift-off distance or firmware are modified.
+
+## Local macro workspace
+
+All listed devices can organise local macros in the interface, including models
+with no configuration driver. Macro playback uses macOS Accessibility and posts
+to an explicitly selected application. This is independent of device USB support;
+it does not add onboard macros, a recording feature or physical button assignment.
+Native execution on this Mac remains unverified until the user grants Accessibility.

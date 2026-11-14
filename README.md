@@ -12,7 +12,12 @@ Intel has not been validated.
 
 - Discover connected external USB and Bluetooth HID peripherals, with hotplug
   callbacks rather than repeated device scans.
-- Original interface in ink, bone and cobalt, following my personal identity.
+- Native split-view interface with the personal ACL monogram, system materials,
+  light/dark appearance and Liquid Glass controls on macOS 26 or later.
+- Original lightweight vector silhouettes for the known keyboard, mouse and headset.
+- Local macro editor: keys, modifiers, pauses and explicit playback into a selected
+  running application. Macros are organised by device and require Accessibility.
+  They are not recorded from input or assigned to hardware buttons.
 - HyperX Alloy Origins Core: solid colour, brightness and lights off.
 - Glorious Model O / O− and Model D / D− wired protocols: solid colour,
   breathing, rainbow, off and USB polling-rate configuration for profile 1.
@@ -47,17 +52,22 @@ swift test --scratch-path "$HOME/Library/Caches/prism-build"
 ```
 
 The diagnostic command lists names, USB IDs and driver classification. It does
-not write lighting or configuration.
+not write lighting or configuration. The sidebar gear opens the permission sheet.
 
 ## Use
 
 1. Connect a peripheral and select it in the sidebar.
-2. If macOS refuses access, use **Permisos de acceso USB** to open Input Monitoring,
+2. If macOS refuses access, use the sidebar gear and **Abrir Monitorización de entrada…** to open Input Monitoring,
    allow Prism, then quit and reopen it. Close other RGB controllers.
 3. Select a colour, effect and brightness, then press **Aplicar al dispositivo**.
 4. **Guardar preset** stores the selection on this Mac; it does not write hardware.
-5. On a supported wired mouse, **Aplicar tasa** changes only the polling rate in
-   profile 1. The displayed rate is a requested value, not a readback of its current rate.
+5. The **Ajustes** tab exposes polling-rate configuration on supported mice and
+   links to relevant macOS settings for other devices. The displayed rate is a
+   requested value, not a readback of its current rate.
+6. In **Macros**, create a sequence, select a running destination and press
+   **Ejecutar**. Playback starts after three seconds and stops when the target
+   loses focus, when you cancel, change the device/tab, or the Mac sleeps.
+   Accessibility authorisation is needed; Prism does not grant it automatically.
 
 The HyperX protocol needs a keepalive to hold a static colour. Prism starts it
 only after Apply, at roughly 17 frames/second, and stops on disconnect, sleep,
@@ -69,8 +79,8 @@ depending on firmware.
 ## Scope
 
 This is a foundation for broader peripheral configuration, not universal hardware
-support. DPI editing, button mapping, keyboard layouts/per-key painting, wireless
-vendor configuration, firmware updates, automatic startup and profile migration
+support. DPI editing, onboard macros, physical button mapping, keyboard layouts/per-key
+painting, wireless vendor configuration, firmware updates, automatic startup and profile migration
 are not implemented. Detection of a Bluetooth device does not imply RGB support.
 No firmware or bootloader commands are exposed.
 
@@ -83,7 +93,10 @@ USB captures containing personal input.
 
 - `PrismCore`: pure Swift packet encoders, capability table and protocol guards.
 - `Prism`: SwiftUI, AppKit and IOHIDManager; HID objects stay on a serial utility queue.
-- `Tests`: golden packet checks, bounds and malformed reads, settings preservation.
+- `Tests`: golden packet checks, bounds and malformed reads, settings preservation,
+  macro bounds, key-code uniqueness and persistence.
+- `MacroPlayer`: explicit, cancellable keyboard-event delivery to one selected process.
+  No input recording or global event taps. Physical key codes follow the active keyboard layout.
 
 There are no network requests, input event listeners, idle polling loops or
 software RGB animation engines. The keyboard keepalive is the explicit exception

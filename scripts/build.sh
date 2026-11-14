@@ -8,6 +8,9 @@ swift build --scratch-path "$SCRATCH" -c release
 BIN="$(swift build --scratch-path "$SCRATCH" -c release --show-bin-path)"
 mkdir -p "$BUNDLE/Contents/MacOS" "$BUNDLE/Contents/Resources"
 cp "$BIN/Prism" "$BUNDLE/Contents/MacOS/Prism"
+for resource in "$BIN"/*.bundle; do
+  [ -d "$resource" ] && ditto "$resource" "$BUNDLE/Contents/Resources/$(basename "$resource")"
+done
 cat > "$BUNDLE/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

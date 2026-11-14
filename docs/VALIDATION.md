@@ -37,3 +37,14 @@ Visible lighting and polling-rate confirmation; mouse readback after permission;
 short report handling on real firmware; disconnect/reconnect during writes;
 sleep/wake and original-effect restoration behaviour; macOS 14/15 and Intel;
 accessibility and translated error messages; notarisation before binary releases.
+
+## Native workspace update, 2026-11-14
+
+Nine tests pass after adding macro sequence bounds, persistence, modifier labels
+and unique key codes. Release build and installed signature pass. Native UI checked
+for mouse and keyboard sections, ACL image loading, model artwork, macro creation,
+adding/removing steps and persistence across relaunch. The temporary test macro was
+removed. No macro was executed into a user's application; Accessibility authorisation,
+actual event delivery and live cancellation/focus-loss checks remain manual validation.
+The earlier footprint observations above are for the original interface, not a
+benchmark of the redesign.
