@@ -41,9 +41,18 @@ is experimental and additionally follows OpenRGB's Model D detector.
 
 ## Identity and system frameworks
 
-The Prism icon, UI and device silhouettes are original to this project, using Álvaro Carpintero's
+The Prism icon and UI are original to this project, using Álvaro Carpintero's
 personal palette (ink, bone, cobalt). Typography and symbols use macOS system
-resources. The ACL monogram comes from the owner's existing personal brand assets. Device
-illustrations are original, approximate silhouettes rather than vendor photos or
-exact product/layout reproductions. Vendor names identify hardware; no vendor
-logos or fonts are bundled. No third-party Swift packages are required.
+resources. The ACL monogram comes from the owner's existing personal brand assets.
+
+The manufacturer photo references are recorded in assets/product-photos.json.
+Their derived transparent PNG cutouts, editing method and prompt are documented
+in assets/product-cutouts/README.md. The original photographs remain copyright
+HyperX/HP, Glorious and Razer; neither the originals nor derived photo assets are
+relicensed under the code's GPL. Product marks visible in the photographs identify
+hardware, with no affiliation or endorsement implied.
+
+Claude Launcher (https://github.com/aaangelmartin/claude-launcher, Apache-2.0,
+revision e7cc348) was reviewed for visual composition and interaction reference.
+Prism uses its own implementation and personal brand rather than its logos,
+fonts or theme colours. No launcher source files or binaries are bundled.

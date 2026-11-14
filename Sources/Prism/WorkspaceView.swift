@@ -19,31 +19,13 @@ enum WorkspaceSection: String, CaseIterable, Identifiable {
     }
   }
 }
-struct NativeSidebar: NSViewRepresentable {
-  func makeNSView(context: Context) -> NSVisualEffectView {
-    let view = NSVisualEffectView()
-    view.material = .sidebar
-    view.blendingMode = .behindWindow
-    view.state = .active
-    return view
-  }
-  func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
-}
-struct ControlGlass: ViewModifier {
-  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-  func body(content: Content) -> some View {
-    if #available(macOS 26, *), !reduceTransparency {
-      content.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14))
-    } else {
-      content.background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-    }
-  }
-}
 struct PrismView: View {
   @Bindable var store: DeviceStore
   @State private var section: WorkspaceSection = .lighting
   @State private var polling = 1000
   @State private var showAccess = false
+  @State private var hoveredDevice: String?
+  @State private var showModes = false
   private var color: Binding<Color> {
     Binding(
       get: { Color(rgb: store.light.color) },
@@ -55,48 +37,33 @@ struct PrismView: View {
           UInt8((min(1, max(0, c.blueComponent)) * 255).rounded()))
       })
   }
+  @Namespace private var selectionGlow
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @State private var appeared = false
   var body: some View {
-    NavigationSplitView {
-      VStack(spacing: 0) {
+    HStack(spacing: 0) {
+      sidebar.frame(width: 218)
+      Rectangle().fill(.white.opacity(0.08)).frame(width: 0.5)
+      VStack(alignment: .leading, spacing: 0) {
         HStack {
-          Image(systemName: "triangle.lefthalf.filled").foregroundStyle(Color.cobalt)
-          Text("Prism").font(.title2.weight(.semibold))
-          Spacer()
-        }.padding(.horizontal, 20).padding(.vertical, 20)
-        List(selection: $store.selected) {
-          Section("Dispositivos") {
-            ForEach(store.devices) { device in
-              HStack(spacing: 10) {
-                Image(systemName: device.symbol).font(.title3).frame(width: 25)
-                VStack(alignment: .leading, spacing: 4) {
-                  Text(device.name).font(.system(size: 12, weight: .medium))
-                  Text(device.transport).font(.caption).foregroundStyle(.secondary)
-                }.padding(.vertical, 5)
-              }.tag(device.id)
-            }
-          }
-        }.listStyle(.sidebar).scrollContentBackground(.hidden)
-        HStack {
-          BrandMark().frame(width: 46, height: 27).foregroundStyle(.primary)
+          Text("Dispositivos").foregroundStyle(.white.opacity(0.38))
+          Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.22))
+          Text(store.current?.name ?? "Prism").foregroundStyle(.white.opacity(0.8))
           Spacer()
           Button {
-            showAccess = true
+            store.service.refresh()
           } label: {
-            Image(systemName: "gearshape")
-          }.buttonStyle(.borderless).help("Permisos de Prism")
-        }.padding(20)
-      }.background(NativeSidebar()).navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 290)
-    } detail: {
-      VStack(spacing: 0) {
+            Image(systemName: "arrow.clockwise")
+          }
+          .buttonStyle(QuietButtonStyle()).help("Actualizar dispositivos")
+        }.font(.system(size: 12)).padding(.horizontal, 28).frame(height: 64)
+        Rectangle().fill(.white.opacity(0.07)).frame(height: 0.5)
         if let device = store.current {
           ScrollView {
             VStack(alignment: .leading, spacing: 24) {
               hero(device)
-              Picker("Sección", selection: $section) {
-                ForEach(WorkspaceSection.allCases) { tab in
-                  Label(tab.rawValue, systemImage: tab.symbol).tag(tab)
-                }
-              }.pickerStyle(.segmented).labelsHidden().padding(7).modifier(ControlGlass())
+              sectionBar
               Group {
                 switch section {
                 case .lighting: lighting(device)
@@ -104,41 +71,45 @@ struct PrismView: View {
                 case .macros: MacroWorkspace(device: device)
                 case .information: information(device)
                 }
-              }.frame(maxWidth: .infinity, alignment: .leading)
-            }.padding(28).frame(maxWidth: 850)
-              .frame(maxWidth: .infinity)
+              }.id("\(device.id)-\(section.id)")
+                .transition(.opacity.combined(with: .offset(y: reduceMotion ? 0 : 5)))
+            }.padding(28).frame(maxWidth: 860).frame(maxWidth: .infinity, alignment: .top)
           }
           if !store.message.isEmpty && section != .macros {
             HStack(spacing: 8) {
               Image(systemName: store.isError ? "exclamationmark.circle.fill" : "checkmark.circle")
-                .foregroundStyle(store.isError ? .orange : .secondary)
+                .foregroundStyle(store.isError ? .orange : .white.opacity(0.55))
               Text(store.message).font(.caption).textSelection(.enabled)
               Spacer()
               Button {
                 store.message = ""
               } label: {
                 Image(systemName: "xmark")
-              }.buttonStyle(.plain).help("Cerrar mensaje")
-            }.padding(14).background(.bar).accessibilityElement(children: .contain)
+              }.buttonStyle(QuietButtonStyle()).help("Cerrar mensaje")
+            }.padding(14).background(.white.opacity(0.025))
           }
         } else {
           ContentUnavailableView(
             "Conecta tus periféricos", systemImage: "keyboard",
             description: Text("Selecciona un dispositivo para personalizarlo."))
         }
-      }.background(Color(nsColor: .windowBackgroundColor))
-    }
-    .tint(.cobalt).frame(minWidth: 900, minHeight: 700)
-    .toolbar {
-      ToolbarItem(placement: .principal) { Text(store.current?.name ?? "Prism").font(.headline) }
-      ToolbarItem {
-        Button {
-          store.service.refresh()
-        } label: {
-          Label("Actualizar", systemImage: "arrow.clockwise")
-        }.help("Actualizar dispositivos")
       }
     }
+    .background(WindowGlass())
+    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+    .overlay(
+      RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(
+        .white.opacity(0.18), lineWidth: 0.5)
+    )
+    .foregroundStyle(Color(red: 241 / 255, green: 241 / 255, blue: 239 / 255))
+    .preferredColorScheme(.dark).tint(.white.opacity(0.9)).font(.system(size: 13))
+    .frame(minWidth: 940, minHeight: 700)
+    .opacity(appeared ? 1 : 0)
+    .onAppear { withAnimation(.easeOut(duration: reduceMotion ? 0 : 0.16)) { appeared = true } }
+    .animation(.easeOut(duration: reduceMotion ? 0 : 0.18), value: section)
+    .animation(.easeOut(duration: reduceMotion ? 0 : 0.18), value: store.selected)
+    .ignoresSafeArea(.container, edges: .top)
+    .background(WindowAppearance())
     .sheet(isPresented: $showAccess) { accessSheet }
     .onChange(of: store.selected) {
       store.message = ""
@@ -149,30 +120,123 @@ struct PrismView: View {
       }
     }
   }
-  private func hero(_ device: Peripheral) -> some View {
-    VStack(alignment: .leading, spacing: 12) {
-      HStack(alignment: .top) {
-        VStack(alignment: .leading, spacing: 5) {
-          Text(
-            device.driver == .hyperX
-              ? "HyperX"
-              : device.driver == .glorious
-                ? "Glorious" : device.vendor == 0x1532 ? "Razer" : "Periférico"
-          ).font(.subheadline).foregroundStyle(.secondary)
-          Text(device.name).font(.system(size: 28, weight: .semibold)).tracking(-0.7)
-        }
-        Spacer()
-        Label("Conectado", systemImage: "circle.fill").font(.caption).foregroundStyle(.secondary)
-          .labelStyle(ConnectionLabelStyle())
+  private var sidebar: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      HStack(spacing: 9) {
+        Image(systemName: "triangle.lefthalf.filled").foregroundStyle(.white.opacity(0.9)).font(
+          .system(size: 20))
+        Text("prism").font(.system(size: 25, weight: .semibold)).tracking(-0.9)
+      }.padding(.horizontal, 22).padding(.top, 52).padding(.bottom, 32)
+      Text("DISPOSITIVOS").font(.system(size: 9, weight: .semibold)).tracking(1.7).foregroundStyle(
+        .white.opacity(0.34)
+      ).padding(.horizontal, 22).padding(.bottom, 12)
+      ScrollView {
+        VStack(spacing: 5) {
+          ForEach(store.devices) { device in
+            Button {
+              store.selected = device.id
+            } label: {
+              HStack(spacing: 11) {
+                Image(systemName: device.symbol).font(.system(size: 17, weight: .light)).frame(
+                  width: 23
+                ).foregroundStyle(.white.opacity(store.selected == device.id ? 0.9 : 0.4))
+                VStack(alignment: .leading, spacing: 4) {
+                  Text(shortName(device)).font(.system(size: 12, weight: .medium))
+                    .multilineTextAlignment(.leading)
+                  Text(device.transport).font(.system(size: 10)).foregroundStyle(
+                    .white.opacity(0.35))
+                }
+                Spacer(minLength: 0)
+              }.padding(.horizontal, 12).padding(.vertical, 12).frame(
+                maxWidth: .infinity, alignment: .leading
+              )
+              .background {
+                if store.selected == device.id {
+                  RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.075))
+                    .overlay(
+                      RoundedRectangle(cornerRadius: 10).strokeBorder(
+                        .white.opacity(0.08), lineWidth: 0.5)
+                    )
+                    .matchedGeometryEffect(id: "device", in: selectionGlow)
+                } else if hoveredDevice == device.id {
+                  RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.035))
+                }
+              }
+              .contentShape(RoundedRectangle(cornerRadius: 10))
+            }.buttonStyle(.plain).onHover { hoveredDevice = $0 ? device.id : nil }
+          }
+        }.padding(.horizontal, 10)
       }
-      DeviceArtwork(
-        device: device,
-        accent: device.driver == .unsupported ? .white : Color(rgb: store.light.color)
-      )
-      .frame(height: 220).frame(maxWidth: .infinity)
-      .background(Color(white: 0.07), in: RoundedRectangle(cornerRadius: 20))
-      Text("Ilustración del modelo · \(device.transport)").font(.caption2).foregroundStyle(
-        .tertiary)
+      Spacer(minLength: 20)
+      HStack {
+        BrandMark().frame(width: 40, height: 23).foregroundStyle(.white.opacity(0.5))
+        Spacer()
+        Button {
+          showAccess = true
+        } label: {
+          Image(systemName: "slider.horizontal.3")
+        }.buttonStyle(QuietButtonStyle()).help("Permisos de Prism")
+      }.padding(22)
+    }.background(.black.opacity(0.12))
+  }
+  private var sectionBar: some View {
+    HStack(spacing: 4) {
+      ForEach(WorkspaceSection.allCases) { tab in
+        Button {
+          section = tab
+        } label: {
+          HStack(spacing: 7) {
+            Image(systemName: tab.symbol).font(.system(size: 12))
+            Text(tab.rawValue).font(.system(size: 12, weight: section == tab ? .medium : .regular))
+          }.foregroundStyle(.white.opacity(section == tab ? 0.95 : 0.43)).padding(.vertical, 11)
+            .frame(maxWidth: .infinity)
+            .background {
+              if section == tab {
+                RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.09))
+                  .overlay(
+                    RoundedRectangle(cornerRadius: 10).strokeBorder(
+                      .white.opacity(0.14), lineWidth: 0.5)
+                  )
+                  .matchedGeometryEffect(id: "section", in: selectionGlow)
+              }
+            }.contentShape(RoundedRectangle(cornerRadius: 10))
+        }.buttonStyle(.plain).accessibilityAddTraits(section == tab ? .isSelected : [])
+      }
+    }.padding(5).background(.black.opacity(0.13), in: RoundedRectangle(cornerRadius: 14))
+      .overlay(
+        RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(0.07), lineWidth: 0.5))
+  }
+  private func shortName(_ device: Peripheral) -> String {
+    if device.vendor == 0x1532 && [0x0565, 0x056e].contains(device.product) {
+      return "BlackShark V2 HyperSpeed"
+    }
+    return device.name.replacingOccurrences(of: "HyperX ", with: "").replacingOccurrences(
+      of: "Glorious ", with: ""
+    ).replacingOccurrences(of: "Razer ", with: "")
+  }
+  private func hero(_ device: Peripheral) -> some View {
+    HStack(spacing: 26) {
+      ProductPhoto(device: device)
+        .frame(width: 300, height: 218)
+        .padding(.vertical, 8)
+      VStack(alignment: .leading, spacing: 12) {
+        Text(
+          device.driver == .hyperX
+            ? "HYPERX"
+            : device.driver == .glorious
+              ? "GLORIOUS" : device.vendor == 0x1532 ? "RAZER" : "PERIFÉRICO"
+        )
+        .font(.system(size: 9, weight: .semibold)).tracking(1.8).foregroundStyle(
+          .white.opacity(0.4))
+        Text(shortName(device)).font(.system(size: 27, weight: .medium)).tracking(-0.8).fixedSize(
+          horizontal: false, vertical: true)
+        HStack(spacing: 6) {
+          Circle().fill(Color(red: 0.48, green: 0.7, blue: 0.58)).frame(width: 5, height: 5)
+          Text("Conectado").font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))
+          Text("/  \(device.transport)").font(.system(size: 11)).foregroundStyle(
+            .white.opacity(0.3))
+        }
+      }.frame(maxWidth: .infinity, alignment: .leading)
     }
   }
   private func group<Content: View>(
@@ -185,9 +249,9 @@ struct PrismView: View {
       }
       content()
     }.padding(22).frame(maxWidth: .infinity, alignment: .leading).background(
-      .background, in: RoundedRectangle(cornerRadius: 16)
+      .white.opacity(0.025), in: RoundedRectangle(cornerRadius: 14)
     )
-    .overlay(RoundedRectangle(cornerRadius: 16).stroke(.quaternary, lineWidth: 0.6))
+    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(0.07), lineWidth: 0.5))
   }
   @ViewBuilder private func lighting(_ device: Peripheral) -> some View {
     if device.driver == .unsupported {
@@ -198,10 +262,43 @@ struct PrismView: View {
         ))
     } else {
       group("Iluminación") {
-        LabeledContent("Efecto") {
-          Picker("Efecto", selection: $store.light.mode) {
-            ForEach(device.driver.modes, id: \.self) { Text(modeTitle($0)).tag($0) }
-          }.labelsHidden().frame(width: 180)
+        HStack {
+          Text("Efecto")
+          Spacer()
+          Button {
+            showModes.toggle()
+          } label: {
+            HStack {
+              Text(modeTitle(store.light.mode))
+              Spacer()
+              Image(systemName: "chevron.up.chevron.down").font(.system(size: 9))
+            }.padding(.horizontal, 11).padding(.vertical, 9).frame(width: 162)
+              .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+              .overlay(
+                RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.1), lineWidth: 0.5))
+          }.buttonStyle(.plain).accessibilityLabel("Efecto").accessibilityValue(
+            modeTitle(store.light.mode)
+          )
+          .popover(isPresented: $showModes, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 3) {
+              ForEach(device.driver.modes, id: \.self) { mode in
+                Button {
+                  store.light.mode = mode
+                  showModes = false
+                } label: {
+                  HStack {
+                    Image(systemName: "checkmark").opacity(store.light.mode == mode ? 1 : 0).frame(
+                      width: 14)
+                    Text(modeTitle(mode))
+                    Spacer()
+                  }.padding(9).frame(width: 150)
+                    .background(
+                      .white.opacity(store.light.mode == mode ? 0.08 : 0),
+                      in: RoundedRectangle(cornerRadius: 7))
+                }.buttonStyle(.plain)
+              }
+            }.padding(7).preferredColorScheme(.dark)
+          }
         }
         Divider()
         HStack {
@@ -231,10 +328,10 @@ struct PrismView: View {
         }
         Divider()
         HStack {
-          Button("Guardar preset") { store.save() }
+          Button("Guardar preset") { store.save() }.buttonStyle(GhostButtonStyle())
           Spacer()
           if store.busy { ProgressView().controlSize(.small) }
-          Button("Aplicar") { store.apply() }.buttonStyle(.borderedProminent).disabled(store.busy)
+          Button("Aplicar") { store.apply() }.buttonStyle(PrimaryButtonStyle()).disabled(store.busy)
         }
       }
     }
@@ -250,7 +347,7 @@ struct PrismView: View {
         ).font(.caption).foregroundStyle(.secondary)
         HStack {
           Spacer()
-          Button("Aplicar tasa") { store.apply(polling: polling) }.buttonStyle(.borderedProminent)
+          Button("Aplicar tasa") { store.apply(polling: polling) }.buttonStyle(PrimaryButtonStyle())
             .disabled(store.busy)
         }
       }

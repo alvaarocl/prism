@@ -12,7 +12,7 @@ struct Peripheral: Identifiable, Hashable, Sendable {
     let transport: String
     var driver: DriverKind { .identify(vendor: vendor, product: product) }
     var identifier: String { String(format: "%04X:%04X", vendor, product) }
-    var symbol: String { driver == .hyperX ? "keyboard" : driver == .glorious ? "computermouse" : "cable.connector" }
+    var symbol: String { driver == .hyperX ? "keyboard" : driver == .glorious ? "computermouse" : vendor == 0x1532 ? "headphones" : "cable.connector" }
 }
 struct HIDFailure: LocalizedError {
     var message: String

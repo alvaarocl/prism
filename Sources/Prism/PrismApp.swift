@@ -23,7 +23,7 @@ import SwiftUI
   }
   var body: some Scene {
     WindowGroup("Prism") { PrismView(store: store) }.defaultSize(width: 1020, height: 780)
-      .windowToolbarStyle(.unified)
+      .windowStyle(.hiddenTitleBar)
       .commands {
         CommandGroup(replacing: .appInfo) {
           Button("Acerca de Prism") {

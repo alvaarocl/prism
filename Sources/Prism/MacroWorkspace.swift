@@ -70,15 +70,15 @@ struct MacroWorkspace: View {
                 return
               }
               player.run(macros[index], target: target)
-            }.buttonStyle(.borderedProminent).disabled(player.running || targetPID == 0)
+            }.buttonStyle(PrimaryButtonStyle()).disabled(player.running || targetPID == 0)
           }
         }
       }
       if !player.status.isEmpty {
         Text(player.status).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
       }
-    }.padding(22).background(.background, in: RoundedRectangle(cornerRadius: 16))
-      .overlay(RoundedRectangle(cornerRadius: 16).stroke(.quaternary, lineWidth: 0.6))
+    }.padding(22).background(.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 14))
+      .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.07), lineWidth: 0.5))
       .onChange(of: device.id, initial: true) {
         player.cancel()
         load()

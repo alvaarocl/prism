@@ -48,3 +48,17 @@ removed. No macro was executed into a user's application; Accessibility authoris
 actual event delivery and live cancellation/focus-loss checks remain manual validation.
 The earlier footprint observations above are for the original interface, not a
 benchmark of the redesign.
+
+## Photo and glass correction, 2026-11-14
+
+Procedural silhouettes removed. Real manufacturer reference images were inspected
+for model identity, then background-extracted with the integrated image editor.
+All three selected PNGs have alpha channels and fully transparent corner pixels.
+HyperX, Glorious and Razer views were visually checked over the installed dark
+window, without the previous white card. Known model variants remain catalogue
+references; the Model O identity does not reuse the Model D photo.
+
+The full-window surface, edge highlight, selection motion and transitions were
+reworked after reviewing Claude Launcher. Release build/signature and native
+controls verified; the existing nine tests passed. No peripheral protocol or macro
+execution behaviour was expanded.

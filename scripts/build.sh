@@ -28,6 +28,10 @@ cat > "$BUNDLE/Contents/Info.plist" <<'PLIST'
 <key>NSHumanReadableCopyright</key><string>© 2026 Álvaro Carpintero and OpenRGB contributors. GPL-2.0-or-later.</string>
 </dict></plist>
 PLIST
+rm -rf "$BUNDLE/Contents/Resources/ProductPhotos"
+if [ "${PRISM_PRODUCT_PHOTOS:-1}" != "0" ]; then
+  ditto assets/product-cutouts "$BUNDLE/Contents/Resources/ProductPhotos"
+fi
 swift scripts/icon.swift "$DIST"
 cp "$DIST/Prism.icns" "$BUNDLE/Contents/Resources/Prism.icns"
 cp LICENSE THIRD_PARTY.md "$BUNDLE/Contents/Resources/"
@@ -46,6 +50,14 @@ if [ "${1:-}" = "--install" ]; then
   mkdir -p "$HOME/Applications"
   if [ -d "$DEST" ]; then
     osascript -e 'tell application "Prism" to quit' || true
+    for attempt in {1..40}; do
+      pgrep -x Prism >/dev/null || break
+      sleep 0.1
+    done
+    if pgrep -x Prism >/dev/null; then
+      echo "Prism is still running; quit it before installing." >&2
+      exit 1
+    fi
     mv "$DEST" "$HOME/.Trash/Prism-$(date +%Y%m%d-%H%M%S).app"
   fi
   ditto "$BUNDLE" "$DEST"

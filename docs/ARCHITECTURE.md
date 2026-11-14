@@ -48,11 +48,23 @@ separate running backend and its own compatibility tests; it is not present toda
 
 ## Native workspace and macros
 
-The window uses NavigationSplitView, native sidebar materials and system appearance.
-Liquid Glass is limited to the section control on macOS 26+, with a material
-fallback and respect for Reduce Transparency. DeviceArtwork draws original static
-vector silhouettes; these are illustrations, not exact photos, 3D assets or verified
-keyboard-layout maps. The existing personal ACL image is a bundled local resource.
+The compact window uses a full-content transparent NSWindow, a native HUD blur,
+an original ink gradient and a thin highlight ring. Native clear Liquid Glass is
+used on macOS 26+, with an opaque fallback for Reduce Transparency. Selected device
+and section backgrounds move with matched geometry; brief transitions respect
+Reduce Motion. Claude Launcher (aaangelmartin/claude-launcher, revision e7cc348)
+was reviewed as a visual reference for composition, borders, selection and timing.
+Prism retains its own palette, ACL mark, system fonts and original implementation.
+No Anthropic/Claude fonts, logos or theme tokens are bundled.
+
+ProductPhoto loads only local PNGs matched by exact USB identity. The included
+manufacturer-photo-derived cutouts have transparent backgrounds and no enclosing
+photo card. Unknown/unavailable images use SF Symbols. Layout, finish and size
+variants are catalogue references, not inferred exact physical appearance. Sources
+and the background-removal prompt are in assets/product-cutouts/README.md.
+Default builds copy these files; no image network requests occur at runtime.
+The optional scripts/fetch-product-photos.py utility retrieves the original
+manufacturer references only when explicitly invoked by a developer.
 
 Macros are composed manually and stored in UserDefaults by VID:PID. No HID input
 listeners, key loggers, recording taps or hardware remaps are installed. MacroPlayer

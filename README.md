@@ -12,9 +12,12 @@ Intel has not been validated.
 
 - Discover connected external USB and Bluetooth HID peripherals, with hotplug
   callbacks rather than repeated device scans.
-- Native split-view interface with the personal ACL monogram, system materials,
-  light/dark appearance and Liquid Glass controls on macOS 26 or later.
-- Original lightweight vector silhouettes for the known keyboard, mouse and headset.
+- Compact translucent window with the personal ACL monogram, ink/bone palette,
+  subtle gradients and borders, sliding selection and brief transitions. Native
+  Liquid Glass on macOS 26+, with blur/material fallback and accessibility settings.
+- Transparent photo cutouts derived from manufacturer product images for the known
+  keyboard, mouse and headset. Missing or unknown images fall back to system icons.
+  See [photo provenance](assets/product-cutouts/README.md).
 - Local macro editor: keys, modifiers, pauses and explicit playback into a selected
   running application. Macros are organised by device and require Accessibility.
   They are not recorded from input or assigned to hardware buttons.
@@ -42,7 +45,9 @@ cd prism
 
 This builds a release configuration, signs with an existing Apple Development
 identity (ad hoc if none exists) and opens `~/Applications/Prism.app`. Build
-products live in `~/Library/Caches`, outside the checkout. A previous installed
+products live in `~/Library/Caches`, outside the checkout. The included PNG cutouts
+are copied locally; the app and default build do not fetch product photos. Set
+`PRISM_PRODUCT_PHOTOS=0` to build with system icons instead. A previous installed
 copy moves to the Trash before replacement. This is a local development install,
 not a notarised public binary.
 
